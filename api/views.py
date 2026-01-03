@@ -232,8 +232,14 @@ class TransactionRetrieveUpdateDestroyAPIView(generics.RetrieveUpdateDestroyAPIV
 
 
 class TransactionCustomListAPIView(generics.ListAPIView):
-    queryset = Transaction.objects.select_related('compte', 'type', 'etudiant').all()
     serializer_class = TransactionCustomSerializer
+
+    def get_queryset(self):
+        return (
+            Transaction.objects
+            .select_related('compte', 'type', 'etudiant')
+            .order_by('-date', '-id') 
+        )
 
 
 
@@ -383,5 +389,40 @@ def modifier_mot_de_passe(request):
 
     except Exception as e:
         return Response({"message" : "Une erreur est survenue"}, status=500)
+    
+
+
+
+
+@require_POST
+def appliquer_frais_mensuels(request):
+    """
+    Diminue le solde de chaque étudiant selon le montant
+    mensuel de sa classe et enregistre une transaction.
+    """
+
+    type_debit = TypeTransaction.objects.get(is_debiteur=True)
+
+    compte_ecole = Compte.objects.get(nom_compte="Ecole")
+
+    with db_transaction.atomic(): 
+        for etudiant in Etudiant.objects.select_related('classe'):
+            montant = etudiant.classe.monthly_charge
+
+            etudiant.solde -= montant
+            etudiant.save()
+
+            Transaction.objects.create(
+                montant=montant,
+                note=f"Frais mensuels - {etudiant.classe.nom_classe}",
+                compte=compte_ecole,
+                type=type_debit,
+                etudiant=etudiant
+            )
+
+    return JsonResponse({
+        "status": "success",
+        "message": "Frais mensuels appliqués à tous les étudiants"
+    })
 
 
