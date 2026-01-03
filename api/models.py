@@ -5,6 +5,7 @@ from django.contrib.auth.hashers import make_password
 
 class Classe(models.Model):
     nom_classe = models.CharField(max_length=50)
+    monthly_charge = models.FloatField(default=5000)
 
     def __str__(self):
         return str(self.nom_classe)
