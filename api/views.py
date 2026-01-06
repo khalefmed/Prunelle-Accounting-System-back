@@ -392,37 +392,31 @@ def modifier_mot_de_passe(request):
     
 
 
+# views.py
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from django.db import transaction
+from .models import Etudiant
 
-
-@require_POST
-def appliquer_frais_mensuels(request):
+class DebitMonthlyChargeAPIView(APIView):
     """
-    Diminue le solde de chaque étudiant selon le montant
-    mensuel de sa classe et enregistre une transaction.
+    Débite le solde de tous les étudiants selon le monthly_charge
+    de leur classe respective.
     """
 
-    type_debit = TypeTransaction.objects.get(is_debiteur=True)
+    def post(self, request, *args, **kwargs):
+        # On récupère tous les étudiants
+        etudiants = Etudiant.objects.select_related('classe').all()
 
-    compte_ecole = Compte.objects.get(nom_compte="Ecole")
+        if not etudiants.exists():
+            return Response({"message": "Aucun étudiant trouvé."}, status=status.HTTP_404_NOT_FOUND)
 
-    with db_transaction.atomic(): 
-        for etudiant in Etudiant.objects.select_related('classe'):
-            montant = etudiant.classe.monthly_charge
+        with transaction.atomic():
+            for etudiant in etudiants:
+                etudiant.solde -= etudiant.classe.monthly_charge
+                etudiant.save()
 
-            etudiant.solde -= montant
-            etudiant.save()
-
-            Transaction.objects.create(
-                montant=montant,
-                note=f"Frais mensuels - {etudiant.classe.nom_classe}",
-                compte=compte_ecole,
-                type=type_debit,
-                etudiant=etudiant
-            )
-
-    return JsonResponse({
-        "status": "success",
-        "message": "Frais mensuels appliqués à tous les étudiants"
-    })
-
-
+        return Response({
+            "message": f"Le solde de {etudiants.count()} étudiants a été débité avec succès."
+        }, status=status.HTTP_200_OK)

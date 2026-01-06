@@ -25,7 +25,7 @@ urlpatterns = [
     path('etudiants/<int:pk>/', EtudiantRetrieveUpdateDestroyAPIView.as_view()),
     path('etudiants/custom/', EtudiantCustomListAPIView.as_view()),
     path("etudiants/import/", ImportEtudiantsAPIView.as_view()),
-    path('frais-mensuels/', appliquer_frais_mensuels, name='frais_mensuels'),
+    path('frais-mensuels/', DebitMonthlyChargeAPIView.as_view(), name='frais_mensuels'),
 
     # Transaction
     path('transactions/', TransactionListCreateAPIView.as_view()),

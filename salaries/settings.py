@@ -42,6 +42,13 @@ ALLOWED_HOSTS = [
 ]
 
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://prunelles",         # si tu utilises le domaine local
+    "http://prunelles:3000",    # si React est sur 3000
+]
+
+
 # Application definition
 
 INSTALLED_APPS = [
